@@ -1,0 +1,48 @@
+name: Update CPC Station Data
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday
+  workflow_dispatch: # Allow manual run
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+    
+    - name: Run Fetch Script
+      run: python scripts/fetch_cpc.py
+    
+    - name: Commit and Push if changed
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # Add all files in the data directory
+        git add data/
+        
+        # git diff --cached --quiet exits with 1 if there are changes
+        if ! git diff --cached --quiet; then
+          echo "Changes detected, committing..."
+          git commit -m "chore(data): auto-update station data $(date +'%Y-%m-%d')"
+          git push
+        else
+          echo "No significant changes detected. Skipping push."
+        fi
