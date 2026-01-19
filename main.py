@@ -94,7 +94,7 @@ class CPCScraper:
         now_iso = datetime.datetime.now().isoformat()
 
         # Polite delay: random sleep between 1 to 2 seconds
-        time.sleep(random.uniform(1.0, 2.0))
+        time.sleep(random.uniform(0.2, 0.5))
         
         try:
             resp = self.session.get(DETAIL_URL_TEMPLATE.format(stnid), verify=False, timeout=20)
