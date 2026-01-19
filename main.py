@@ -6,7 +6,6 @@ import os
 import re
 import time
 import random
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -15,24 +14,19 @@ BASE_URL = "https://vipmbr.cpc.com.tw/mbwebs/service_search.aspx"
 DETAIL_URL_TEMPLATE = "https://vipmbr.cpc.com.tw/mbwebs/service_store.aspx?StnID={}"
 DATA_DIR = "data"
 STATIONS_DIR = os.path.join(DATA_DIR, "stations")
-# Lowering workers to 3-5 is much safer for stable connections
-MAX_WORKERS = 3 
+
+# Columns that must be boolean
+BOOL_COLUMNS = [
+    "九八無鉛", "九五無鉛", "九二無鉛", "酒精汽油", "散裝煤油", 
+    "超級柴油", "汽油自助", "柴油自助", "男女廁所", "無障礙廁所"
+]
 
 class CPCScraper:
     def __init__(self):
         self.session = requests.Session()
-        
-        # 1. Setup automatic retries for connection/read errors
-        retries = Retry(
-            total=3,                # Retry 3 times
-            backoff_factor=1,       # Wait 1s, 2s, 4s between retries
-            status_forcelist=[500, 502, 503, 504],
-            raise_on_status=False
-        )
-        adapter = HTTPAdapter(max_retries=retries)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
-
+        # High retry count since we are running everything in one go
+        retries = Retry(total=5, backoff_factor=2, status_forcelist=[500, 502, 503, 504])
+        self.session.mount("https://", HTTPAdapter(max_retries=retries))
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         })
@@ -47,48 +41,45 @@ class CPCScraper:
                 "__VIEWSTATEGENERATOR": soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"],
                 "__EVENTVALIDATION": soup.find("input", {"name": "__EVENTVALIDATION"})["value"],
             }
-        except (TypeError, KeyError):
-            return None
+        except: return None
 
     def fetch_master_list(self):
-        """Fetches the main table of all stations."""
+        """Step 1: Get the full table of stations."""
         try:
-            init_resp = self.session.get(BASE_URL, verify=False, timeout=15)
+            init_resp = self.session.get(BASE_URL, verify=False, timeout=20)
             params = self._get_asp_params(init_resp.text)
-            if not params:
-                raise Exception("Failed to extract ASP.NET parameters.")
-
-            post_data = {**params, "TypeGroup": "rbGroup1", "ddlCity": "全部縣市", "ddlSubCity": "全部鄉鎮區", "TimeGroup": "rbGroup4", "btnQuery": "查   詢"}
-            resp = self.session.post(BASE_URL, data=post_data, verify=False, timeout=20)
+            post_data = {
+                **params, 
+                "TypeGroup": "rbGroup1", 
+                "ddlCity": "全部縣市", 
+                "ddlSubCity": "全部鄉鎮區", 
+                "TimeGroup": "rbGroup4", 
+                "btnQuery": "查   詢"
+            }
+            resp = self.session.post(BASE_URL, data=post_data, verify=False, timeout=30)
             
             soup = BeautifulSoup(resp.text, "html.parser")
-            table = soup.find("table", id="MyGridView1")
-            if not table:
-                raise Exception("Station table not found in response.")
-
-            rows = table.find_all("tr")
+            rows = soup.find("table", id="MyGridView1").find_all("tr")
             headers = [th.get_text(strip=True) for th in rows[0].find_all("th")]
             
             stations = []
             for row in rows[1:]:
                 cols = row.find_all("td")
                 if not cols: continue
-                data = {}
-                stnid = ""
+                data, stnid = {}, ""
                 for i, col in enumerate(cols):
                     header = headers[i]
+                    val = col.get_text(strip=True)
                     if header == "站名":
                         a_tag = col.find("a")
-                        if a_tag:
-                            match = re.search(r'StnID=([A-Za-z0-9]+)', a_tag["href"])
-                            stnid = match.group(1) if match else ""
+                        stnid = re.search(r'StnID=([A-Za-z0-9]+)', a_tag["href"]).group(1) if a_tag else ""
                         data[header] = col.get_text(" ", strip=True)
-                    elif "●" in col.get_text():
-                        data[header] = True
-                    elif header in ["九八無鉛","九五無鉛","九二無鉛","超級柴油","汽油自助","柴油自助"]:
-                        data[header] = False
+                    elif header in BOOL_COLUMNS:
+                        data[header] = "●" in val
                     else:
-                        data[header] = col.get_text(strip=True)
+                        data[header] = val
+                
+                data["is_24h"] = data.get("營業時間") == "00:00-24:00"
                 data["StnID"] = stnid
                 stations.append(data)
             return stations
@@ -96,30 +87,23 @@ class CPCScraper:
             print(f"Critical error fetching master list: {e}")
             return []
 
-    def fetch_and_save_detail(self, station_basic, force_update=False):
-        """Fetches detail for one station with timeout protection and saving."""
+    def process_station(self, station_basic):
+        """Step 2: Fetch detail and compare with local disk."""
         stnid = station_basic["StnID"]
-        if not stnid: return None
-        
         file_path = os.path.join(STATIONS_DIR, f"{stnid}.json")
+        now_iso = datetime.datetime.now().isoformat()
 
-        if not force_update and os.path.exists(file_path):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except: pass
-
-        # Small delay to prevent hitting server too hard
-        time.sleep(random.uniform(0.5, 1.5))
-
+        # Polite delay: random sleep between 1 to 2 seconds
+        time.sleep(random.uniform(1.0, 2.0))
+        
         try:
-            resp = self.session.get(DETAIL_URL_TEMPLATE.format(stnid), verify=False, timeout=15)
+            resp = self.session.get(DETAIL_URL_TEMPLATE.format(stnid), verify=False, timeout=20)
             soup = BeautifulSoup(resp.text, "html.parser")
             
             coord_tag = soup.find(id="Label_Coordinates")
             coords = coord_tag.get_text(strip=True).split("/") if coord_tag else []
             
-            detail = {
+            scraped_detail = {
                 **station_basic,
                 "address": "".join((soup.find(id="Label_Address").get_text() if soup.find(id="Label_Address") else "").split()),
                 "phone": soup.find(id="Label_Phone").get_text(strip=True) if soup.find(id="Label_Phone") else "",
@@ -128,15 +112,32 @@ class CPCScraper:
                 "latitude": coords[1].strip() if len(coords) > 1 else "",
                 "services": [li.get_text(strip=True) for li in soup.select("#BulletedList2 li")],
                 "products": ["".join(li.get_text().split()) for li in soup.select("#BulletedList1 li")],
-                "update_timestamp": datetime.datetime.now().isoformat()
             }
 
+            # Comparison Logic
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    local_data = json.load(f)
+                
+                # Compare content only (ignore timestamp)
+                compare_local = {k:v for k,v in local_data.items() if k != "update_timestamp"}
+                if compare_local == scraped_detail:
+                    # No data change detected, return existing local data
+                    return local_data
+
+            # Save if new or different
+            scraped_detail["update_timestamp"] = now_iso
             with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(detail, f, ensure_ascii=False, indent=2)
+                json.dump(scraped_detail, f, ensure_ascii=False, indent=2)
             
-            return detail
+            return scraped_detail
+
         except Exception as e:
-            print(f"\n[!] Error fetching {stnid}: {e}")
+            print(f"Error fetching {stnid}: {e}")
+            # Fallback to local if fetch fails
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
             return None
 
 def main():
@@ -145,37 +146,40 @@ def main():
     stations_basic = scraper.fetch_master_list()
     
     if not stations_basic:
-        print("Failed to get station list. Exiting.")
         return
 
-    print(f"Step 2: Processing {len(stations_basic)} stations (Slow mode, Workers={MAX_WORKERS})...")
+    print(f"Step 2: Processing {len(stations_basic)} stations sequentially...")
     
     final_list = []
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(scraper.fetch_and_save_detail, s): s for s in stations_basic}
+    all_services = set()
+    all_products = set()
+    
+    total = len(stations_basic)
+    for idx, station in enumerate(stations_basic, 1):
+        result = scraper.process_station(station)
+        if result:
+            final_list.append(result)
+            all_services.update(result.get("services", []))
+            all_products.update(result.get("products", []))
         
-        count = 0
-        for future in as_completed(futures):
-            result = future.result()
-            if result:
-                final_list.append(result)
-            
-            count += 1
-            if count % 10 == 0 or count == len(stations_basic):
-                print(f"Progress: {count}/{len(stations_basic)} synced.")
+        if idx % 10 == 0 or idx == total:
+            print(f"Progress: {idx}/{total} processed...")
 
-    # Sort final list by StnID for a clean final file
+    # Final Save Operations
     final_list.sort(key=lambda x: x.get("StnID", ""))
-
-    master_output = {
-        "update_time": datetime.datetime.now().isoformat(),
-        "stations": final_list
+    
+    # Generate aggregated files
+    output_files = {
+        "all_stations.json": {"update_time": datetime.datetime.now().isoformat(), "stations": final_list},
+        "all_services.json": sorted(list(all_services)),
+        "all_products.json": sorted(list(all_products))
     }
-    
-    with open(os.path.join(DATA_DIR, "all_stations.json"), "w", encoding="utf-8") as f:
-        json.dump(master_output, f, ensure_ascii=False, indent=2)
-    
-    print(f"\nCompleted! Total stations in master file: {len(final_list)}")
+
+    for filename, content in output_files.items():
+        with open(os.path.join(DATA_DIR, filename), "w", encoding="utf-8") as f:
+            json.dump(content, f, ensure_ascii=False, indent=2)
+
+    print("\nUpdate complete. Sequential fetch finished.")
 
 if __name__ == "__main__":
     main()
