@@ -27,7 +27,7 @@ jobs:
         pip install requests beautifulsoup4
     
     - name: Run Fetch Script
-      run: python scripts/fetch_cpc.py
+      run: python main.py
     
     - name: Commit and Push if changed
       run: |
