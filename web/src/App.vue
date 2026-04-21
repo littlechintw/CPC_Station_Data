@@ -220,8 +220,10 @@ onMounted(async () => {
   if (!mapContainer.value) return
 
   map.value = L.map(mapContainer.value).setView([23.75, 121], 7)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
   }).addTo(map.value)
 
   stationLayer.value = L.layerGroup().addTo(map.value)
