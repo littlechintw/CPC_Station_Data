@@ -1,5 +1,21 @@
-# Vue 3 + Vite
+# CPC Station Web
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vite + Vue 前端網站，提供：
+- CPC 加油站地圖
+- 最近站位（使用瀏覽器定位）
+- 篩選（直營、自助、24H、廁所、服務）
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 開發
+
+```bash
+npm install
+npm run dev
+```
+
+## 打包
+
+```bash
+npm run build
+```
+
+資料來源檔案使用 `public/data/all_stations.json`，由根目錄 `data/all_stations.json` 同步而來。
