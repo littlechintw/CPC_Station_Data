@@ -1,0 +1,295 @@
+:root {
+  --bg: #f5f6f8;
+  --panel-bg: #ffffff;
+  --text: #1a1d23;
+  --text-muted: #6b7280;
+  --border: #e3e5e9;
+  --accent: #2563eb;
+  --direct: #2563eb;
+  --franchise: #16a34a;
+  --fishing: #d97706;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --panel-bg: #1c1f26;
+    --text: #e8e9ec;
+    --text-muted: #9aa0ab;
+    --border: #2c303a;
+    --accent: #5b8def;
+    --direct: #5b8def;
+    --franchise: #4ade80;
+    --fishing: #fbbf24;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+}
+
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 20;
+}
+
+#topbar h1 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.status {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#app {
+  display: flex;
+  height: calc(100% - 45px);
+}
+
+#sidebar {
+  width: 360px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary-btn:active { opacity: 0.85; }
+
+.fallback-location { margin-top: 10px; }
+.hint { font-size: 12px; color: var(--text-muted); margin: 6px 0; }
+.row { display: flex; gap: 8px; }
+.row select { flex: 1; min-width: 0; }
+
+select, input[type="text"] {
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.nearest-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chip-btn {
+  border: 1.5px solid var(--border);
+  background: var(--panel-bg);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.chip-btn.direct { border-color: var(--direct); color: var(--direct); }
+.chip-btn.franchise { border-color: var(--franchise); color: var(--franchise); }
+.chip-btn.fishing { border-color: var(--fishing); color: var(--fishing); }
+.chip-btn:active { opacity: 0.8; }
+
+.nearest-result {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.filter-row:last-of-type { margin-bottom: 0; }
+.filter-label { font-size: 12px; color: var(--text-muted); width: 32px; flex-shrink: 0; }
+#radiusSlider { flex: 1; }
+#radiusLabel { font-size: 12px; color: var(--text-muted); width: 52px; flex-shrink: 0; text-align: right; }
+#searchBox { flex: 1; width: 100%; }
+
+.type-filters { display: flex; gap: 6px; flex: 1; }
+.type-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+.type-chip input { display: none; }
+.type-chip.direct { border-color: var(--direct); color: var(--direct); }
+.type-chip.franchise { border-color: var(--franchise); color: var(--franchise); }
+.type-chip.fishing { border-color: var(--fishing); color: var(--fishing); }
+.type-chip:has(input:checked).direct { background: var(--direct); color: white; }
+.type-chip:has(input:checked).franchise { background: var(--franchise); color: white; }
+.type-chip:has(input:checked).fishing { background: var(--fishing); color: white; }
+
+.checkbox-row {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.list-panel { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
+.list-summary { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.station-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+
+.station-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: var(--bg);
+}
+.station-card:hover { border-color: var(--accent); }
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.card-name { font-size: 14px; font-weight: 700; }
+.card-distance { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+.type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: white;
+  margin-right: 6px;
+}
+.type-badge.direct { background: var(--direct); }
+.type-badge.franchise { background: var(--franchise); }
+.type-badge.fishing { background: var(--fishing); }
+
+.badge-24h {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.card-addr { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tag {
+  font-size: 11px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: var(--text-muted);
+}
+
+#mapWrap { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; }
+
+.mobile-tab-btn { display: none; }
+
+/* Leaflet popup content */
+.popup-content { font-size: 13px; min-width: 200px; }
+.popup-content .card-top { margin-bottom: 4px; }
+
+@media (max-width: 860px) {
+  #app { flex-direction: column; position: relative; }
+  #sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 100%;
+  }
+  #app.show-map #sidebar { display: none; }
+  #app:not(.show-map) #mapWrap { display: none; }
+  /* Always floats at the bottom, in both list and map views, so it's
+     reachable without scrolling — a static in-flow button would land below
+     the fold once the station list has more than a couple of cards. */
+  .mobile-tab-btn {
+    display: block;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    z-index: 30;
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    padding: 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  #sidebar { padding-bottom: 64px; }
+}
+
+.leaflet-div-icon-dot {
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 3px rgba(0,0,0,0.5);
+}
+.you-are-here {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.35);
+}
