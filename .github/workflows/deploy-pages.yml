@@ -3,6 +3,14 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # update_data.yml commits/pushes using the default GITHUB_TOKEN, and
+  # GitHub deliberately does not let GITHUB_TOKEN-authored pushes trigger
+  # other workflows' `on: push` (anti-loop protection) — so without this,
+  # the site never redeploys after the weekly data refresh. workflow_run
+  # fires regardless of which token made the push.
+  workflow_run:
+    workflows: ["Update CPC Station Data"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +26,9 @@ concurrency:
 
 jobs:
   deploy:
+    # Only skip for a workflow_run event when the run it's reacting to
+    # actually failed — don't deploy on top of a broken/incomplete scrape.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -25,6 +36,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # For workflow_run, check out the exact commit that run produced
+          # rather than whatever github.sha would otherwise resolve to.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
