@@ -240,6 +240,7 @@ select, input[type="text"] {
   padding: 1px 6px;
   border-radius: 5px;
   color: var(--text);
+  background: var(--panel-bg);
   border: 1px solid var(--border);
 }
 
