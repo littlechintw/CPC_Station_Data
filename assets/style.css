@@ -297,13 +297,30 @@ select, input[type="text"] {
 .marker-dot.direct { background: var(--direct); }
 .marker-dot.franchise { background: var(--franchise); }
 .marker-dot.fishing { background: var(--fishing); }
+/* Deliberately NOT blue/green/orange — those are already taken by the
+   direct/franchise/fishing station colors, and "you are here" used to sit
+   right on top of a same-colored direct-station dot and vanish into it. Red
+   plus a pulse animation keeps it readable against either basemap. */
 .you-are-here {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #2563eb;
+  background: #e11d48;
   border: 3px solid white;
-  box-shadow: 0 0 0 4px rgba(37,99,235,0.35);
+  box-shadow: 0 0 0 2px #e11d48, 0 1px 4px rgba(0,0,0,0.5);
+  position: relative;
+}
+.you-are-here::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid #e11d48;
+  animation: you-are-here-pulse 1.8s ease-out infinite;
+}
+@keyframes you-are-here-pulse {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 /* --- index.html: quick "nearest station right now" landing page --- */

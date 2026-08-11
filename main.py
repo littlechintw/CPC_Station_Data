@@ -6,6 +6,7 @@ import os
 import re
 import time
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -32,12 +33,19 @@ IDENTITY_COLUMNS = {
     "縣市", "鄉鎮區", "類別", "站名", "地址", "電話", "加油站電話", "營業時間", "站代號"
 }
 
+# Detail-page fetches are I/O-bound (waiting on CPC's server, not CPU), so a
+# small thread pool gives a near-linear speedup on the ~2,000-station scrape
+# without hammering the site — each worker still takes its own polite delay
+# between requests, there just are several workers doing it at once.
+MAX_WORKERS = 8
+
 class CPCScraper:
     def __init__(self):
         self.session = requests.Session()
         # High retry count since we are running everything in one go
         retries = Retry(total=5, backoff_factor=2, status_forcelist=[500, 502, 503, 504])
-        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+        adapter = HTTPAdapter(max_retries=retries, pool_maxsize=MAX_WORKERS)
+        self.session.mount("https://", adapter)
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         })
@@ -232,22 +240,27 @@ def main():
     if not stations_basic:
         return
 
-    print(f"Step 2: Processing {len(stations_basic)} stations sequentially...")
-    
+    total = len(stations_basic)
+    print(f"Step 2: Processing {total} stations with {MAX_WORKERS} workers...")
+
     final_list = []
     all_services = set()
     all_products = set()
-    
-    total = len(stations_basic)
-    for idx, station in enumerate(stations_basic, 1):
-        result = scraper.process_station(station)
-        if result:
-            final_list.append(result)
-            all_services.update(result.get("services", []))
-            all_products.update(result.get("products", []))
-        
-        if idx % 10 == 0 or idx == total:
-            print(f"Progress: {idx}/{total} processed...")
+
+    # Aggregation (list/set updates, progress prints) all happens here on the
+    # main thread as futures complete, rather than inside worker threads —
+    # only the network fetch + per-station file write need to run concurrently.
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [executor.submit(scraper.process_station, station) for station in stations_basic]
+        for idx, future in enumerate(as_completed(futures), 1):
+            result = future.result()
+            if result:
+                final_list.append(result)
+                all_services.update(result.get("services", []))
+                all_products.update(result.get("products", []))
+
+            if idx % 20 == 0 or idx == total:
+                print(f"Progress: {idx}/{total} processed...")
 
     # Final Save Operations
     final_list.sort(key=lambda x: x.get("StnID", ""))

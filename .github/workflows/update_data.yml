@@ -8,6 +8,13 @@ on:
 permissions:
   contents: write
 
+# The scrape takes ~20 minutes; without this, a manual dispatch overlapping
+# the weekly schedule would race another instance of this same job, not just
+# unrelated pushes to main.
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   update-data:
     runs-on: ubuntu-latest
@@ -33,15 +40,33 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        
+
         # Add all files in the data directory
         git add data/
-        
+
         # git diff --cached --quiet exits with 1 if there are changes
-        if ! git diff --cached --quiet; then
-          echo "Changes detected, committing..."
-          git commit -m "chore(data): auto-update station data $(date +'%Y-%m-%d')"
-          git push
-        else
+        if git diff --cached --quiet; then
           echo "No significant changes detected. Skipping push."
+          exit 0
         fi
+
+        echo "Changes detected, committing..."
+        git commit -m "chore(data): auto-update station data $(date +'%Y-%m-%d')"
+
+        # The scrape above takes ~20 minutes, so main can easily have moved
+        # since checkout (someone else's push, or another run). Rebase onto
+        # the latest before pushing, retrying a few times in case of another
+        # race, instead of a bare `git push` that fails outright.
+        for attempt in 1 2 3 4 5; do
+          git fetch origin main
+          if git rebase origin/main && git push origin HEAD:main; then
+            echo "Pushed successfully."
+            exit 0
+          fi
+          echo "Push attempt $attempt failed (main moved again?), retrying in 10s..."
+          git rebase --abort 2>/dev/null || true
+          sleep 10
+        done
+
+        echo "Failed to push after retries — main keeps moving, or there's a real conflict with the scrape's own changes."
+        exit 1
