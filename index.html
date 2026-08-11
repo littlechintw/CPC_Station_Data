@@ -3,80 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>中油加油站地圖 | 直營 / 加盟 / 其他</title>
-<meta name="description" content="查看附近的中油加油站是直營、加盟還是其他站別，並尋找最近的直營站或加盟站。">
+<title>附近的中油站 | 直營 / 加盟 / 其他</title>
+<meta name="description" content="打開就知道最近的中油加油站是直營、加盟還是其他站別，賣什麼、地址在哪，也能找最近的直營站或加盟站。">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <header id="topbar">
-  <h1>中油加油站地圖</h1>
+  <h1>附近的中油站</h1>
   <div id="status" class="status">載入資料中…</div>
 </header>
 
-<div id="app">
-  <aside id="sidebar">
+<main class="home">
 
-    <section class="panel">
-      <button id="locateBtn" class="primary-btn">📍 使用我的位置</button>
-      <div id="fallbackLocation" class="fallback-location" hidden>
-        <p class="hint">沒有定位權限？改用縣市／鄉鎮區估算位置：</p>
-        <div class="row">
-          <select id="citySelect"><option value="">選擇縣市</option></select>
-          <select id="districtSelect"><option value="">選擇鄉鎮區</option></select>
-        </div>
-      </div>
-    </section>
+  <section id="heroCard" class="hero-card">
+    <div id="heroStatus" class="hero-status">正在定位…</div>
+    <div id="heroContent" class="hero-content" hidden>
+      <div id="heroDetail"></div>
+      <div id="heroMap" class="hero-map"></div>
+    </div>
+  </section>
 
-    <section class="panel">
-      <div class="nearest-buttons">
-        <button class="chip-btn direct" data-type="direct">找最近的直營站</button>
-        <button class="chip-btn franchise" data-type="franchise">找最近的加盟站</button>
-        <button class="chip-btn fishing" data-type="fishing">找最近的其他站</button>
-      </div>
-      <div id="nearestResult" class="nearest-result" hidden></div>
-    </section>
+  <button id="retryLocateBtn" class="secondary-btn" hidden>🔄 重新定位</button>
 
-    <section class="panel">
-      <div class="filter-row">
-        <span class="filter-label">站別</span>
-        <div class="type-filters">
-          <label class="type-chip direct"><input type="checkbox" value="direct" checked><span>直營</span></label>
-          <label class="type-chip franchise"><input type="checkbox" value="franchise" checked><span>加盟</span></label>
-          <label class="type-chip fishing"><input type="checkbox" value="fishing" checked><span>其他</span></label>
-        </div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">距離</span>
-        <input type="range" id="radiusSlider" min="1" max="20" step="1" value="5">
-        <span id="radiusLabel">5 公里</span>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">搜尋</span>
-        <input type="text" id="searchBox" placeholder="站名、產品或服務，如：咖啡、９８">
-      </div>
-      <label class="checkbox-row"><input type="checkbox" id="open24Only"> 只顯示 24 小時營業</label>
-    </section>
+  <section class="panel quick-actions">
+    <div class="section-label">找最近的...</div>
+    <div class="quick-actions-row">
+      <button class="chip-btn all active" data-type="">不限站別</button>
+      <button class="chip-btn direct" data-type="direct">直營站</button>
+      <button class="chip-btn franchise" data-type="franchise">加盟站</button>
+      <button class="chip-btn fishing" data-type="fishing">其他站</button>
+    </div>
+  </section>
 
-    <section class="panel list-panel">
-      <div id="listSummary" class="list-summary"></div>
-      <div id="stationList" class="station-list"></div>
-    </section>
+  <section class="panel fallback-location" id="fallbackSection" hidden>
+    <p class="hint">沒有定位權限？改用縣市／鄉鎮區估算位置：</p>
+    <div class="row">
+      <select id="citySelect"><option value="">選擇縣市</option></select>
+      <select id="districtSelect"><option value="">選擇鄉鎮區</option></select>
+    </div>
+  </section>
 
-  </aside>
+  <a href="map.html" class="explore-link">🗺️ 打開完整地圖，篩選、看列表 →</a>
 
-  <main id="mapWrap">
-    <div id="map"></div>
-  </main>
-
-  <div id="mapTabBtn" class="mobile-tab-btn">切換到地圖</div>
-</div>
+</main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="assets/app.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/home.js"></script>
 </body>
 </html>

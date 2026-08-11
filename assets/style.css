@@ -54,6 +54,15 @@ html, body {
   font-weight: 700;
 }
 
+.topbar-title { display: flex; align-items: center; gap: 10px; }
+.back-link {
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+.back-link:hover { color: var(--accent); }
+
 .status {
   font-size: 12px;
   color: var(--text-muted);
@@ -285,6 +294,9 @@ select, input[type="text"] {
   border: 2px solid white;
   box-shadow: 0 0 3px rgba(0,0,0,0.5);
 }
+.marker-dot.direct { background: var(--direct); }
+.marker-dot.franchise { background: var(--franchise); }
+.marker-dot.fishing { background: var(--fishing); }
 .you-are-here {
   width: 16px;
   height: 16px;
@@ -293,3 +305,80 @@ select, input[type="text"] {
   border: 3px solid white;
   box-shadow: 0 0 0 4px rgba(37,99,235,0.35);
 }
+
+/* --- index.html: quick "nearest station right now" landing page --- */
+
+.home {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hero-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  min-height: 100px;
+}
+
+.hero-status {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 28px 8px;
+}
+
+.hero-content .card-name { font-size: 19px; }
+.hero-content .card-addr { font-size: 13px; }
+.hero-content .tag { font-size: 12px; }
+
+.hero-map {
+  margin-top: 12px;
+  height: 220px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.secondary-btn {
+  align-self: center;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.secondary-btn:active { opacity: 0.7; }
+
+.section-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+
+.quick-actions-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-actions-row .chip-btn { flex: 1 1 40%; text-align: center; }
+
+.chip-btn.all { border-color: var(--text-muted); color: var(--text-muted); }
+.chip-btn.active { color: white; }
+.chip-btn.all.active { background: var(--text-muted); border-color: var(--text-muted); }
+.chip-btn.direct.active { background: var(--direct); }
+.chip-btn.franchise.active { background: var(--franchise); }
+.chip-btn.fishing.active { background: var(--fishing); }
+
+.explore-link {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.explore-link:hover { border-color: var(--accent); }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>完整地圖 | 中油加油站</title>
+<meta name="description" content="用地圖瀏覽、篩選附近的中油加油站，查看是直營、加盟還是其他站別。">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="topbar-title">
+    <a href="index.html" class="back-link" title="回首頁">←</a>
+    <h1>完整地圖</h1>
+  </div>
+  <div id="status" class="status">載入資料中…</div>
+</header>
+
+<div id="app">
+  <aside id="sidebar">
+
+    <section class="panel">
+      <button id="locateBtn" class="primary-btn">📍 使用我的位置</button>
+      <div id="fallbackLocation" class="fallback-location" hidden>
+        <p class="hint">沒有定位權限？改用縣市／鄉鎮區估算位置：</p>
+        <div class="row">
+          <select id="citySelect"><option value="">選擇縣市</option></select>
+          <select id="districtSelect"><option value="">選擇鄉鎮區</option></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="nearest-buttons">
+        <button class="chip-btn direct" data-type="direct">找最近的直營站</button>
+        <button class="chip-btn franchise" data-type="franchise">找最近的加盟站</button>
+        <button class="chip-btn fishing" data-type="fishing">找最近的其他站</button>
+      </div>
+      <div id="nearestResult" class="nearest-result" hidden></div>
+    </section>
+
+    <section class="panel">
+      <div class="filter-row">
+        <span class="filter-label">站別</span>
+        <div class="type-filters">
+          <label class="type-chip direct"><input type="checkbox" value="direct" checked><span>直營</span></label>
+          <label class="type-chip franchise"><input type="checkbox" value="franchise" checked><span>加盟</span></label>
+          <label class="type-chip fishing"><input type="checkbox" value="fishing" checked><span>其他</span></label>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">距離</span>
+        <input type="range" id="radiusSlider" min="1" max="20" step="1" value="5">
+        <span id="radiusLabel">5 公里</span>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">搜尋</span>
+        <input type="text" id="searchBox" placeholder="站名、產品或服務，如：咖啡、９８">
+      </div>
+      <label class="checkbox-row"><input type="checkbox" id="open24Only"> 只顯示 24 小時營業</label>
+    </section>
+
+    <section class="panel list-panel">
+      <div id="listSummary" class="list-summary"></div>
+      <div id="stationList" class="station-list"></div>
+    </section>
+
+  </aside>
+
+  <main id="mapWrap">
+    <div id="map"></div>
+  </main>
+
+  <div id="mapTabBtn" class="mobile-tab-btn">切換到地圖</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

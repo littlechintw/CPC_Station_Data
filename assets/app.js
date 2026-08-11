@@ -1,10 +1,9 @@
 (() => {
   'use strict';
 
-  const DATA_URL = 'data/stations_lite.json';
-  const TYPE_LABELS = { direct: '直營', franchise: '加盟', fishing: '其他' };
-  const TYPE_TITLES = { direct: '直營站', franchise: '加盟站', fishing: '漁船站（其他）' };
-  const TYPE_ORDER = ['direct', 'franchise', 'fishing'];
+  const { TYPE_ORDER, haversineKm, formatDistance, escapeHtml, typeBadgeHtml,
+    stationDetailHtml, markerIcon, youAreHereIcon, addBaseTileLayer,
+    loadStations, findNearest } = CPC;
 
   let stations = [];
   let map, clusterGroup, youAreHereMarker;
@@ -18,64 +17,15 @@
 
   const el = (id) => document.getElementById(id);
 
-  function haversineKm(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  function formatDistance(km) {
-    if (km == null || !isFinite(km)) return '';
-    return km < 1 ? `${Math.round(km * 1000)} 公尺` : `${km.toFixed(1)} 公里`;
-  }
-
-  function escapeHtml(str) {
-    return String(str || '').replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
-  }
-
   function initMap() {
     map = L.map('map', { zoomControl: true }).setView([23.6978, 120.9605], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    addBaseTileLayer(map);
     clusterGroup = L.markerClusterGroup({ maxClusterRadius: 50, disableClusteringAtZoom: 17 });
     map.addLayer(clusterGroup);
   }
 
   function popupHtml(s) {
-    const badge = `<span class="type-badge ${s.type}" title="${TYPE_TITLES[s.type] || ''}">${TYPE_LABELS[s.type] || '其他'}</span>`;
-    const h24 = s.is24h ? '<span class="badge-24h">24 小時</span>' : '';
-    const products = (s.products || []).map(p => `<span class="tag">${escapeHtml(p)}</span>`).join('');
-    const services = (s.services || []).map(sv => `<span class="tag">${escapeHtml(sv)}</span>`).join('');
-    const phone = s.phone ? `<a href="tel:${escapeHtml(s.phone)}">${escapeHtml(s.phone)}</a>` : '';
-    const nav = (s.lat != null && s.lng != null)
-      ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}" target="_blank" rel="noopener">導航</a>`
-      : '';
-    const metaLine = [s.hours, phone, nav].filter(Boolean).join(' · ');
-    return `
-      <div class="popup-content">
-        <div class="card-top"><span class="card-name">${escapeHtml(s.name)}</span></div>
-        <div>${badge}${h24}</div>
-        <div class="card-addr">${escapeHtml(s.address)}</div>
-        <div class="card-addr">${metaLine}</div>
-        ${products ? `<div class="tag-row">${products}</div>` : ''}
-        ${services ? `<div class="tag-row">${services}</div>` : ''}
-      </div>`;
-  }
-
-  function markerIcon(type) {
-    return L.divIcon({
-      className: '',
-      html: `<div class="leaflet-div-icon-dot marker-dot ${type}" style="width:14px;height:14px"></div>`,
-      iconSize: [14, 14],
-    });
+    return `<div class="popup-content">${stationDetailHtml(s)}</div>`;
   }
 
   function buildMarkers() {
@@ -135,16 +85,7 @@
     matched.slice(0, 300).forEach(s => {
       const card = document.createElement('div');
       card.className = 'station-card';
-      const dist = userLocation ? formatDistance(s._dist) : '';
-      const products = (s.products || []).slice(0, 4).map(p => `<span class="tag">${escapeHtml(p)}</span>`).join('');
-      card.innerHTML = `
-        <div class="card-top">
-          <div><span class="type-badge ${s.type}" title="${TYPE_TITLES[s.type] || ''}">${TYPE_LABELS[s.type]}</span><span class="card-name">${escapeHtml(s.name)}</span></div>
-          <div class="card-distance">${dist}</div>
-        </div>
-        <div class="card-addr">${escapeHtml(s.address)}${s.is24h ? ' · 24小時' : ''}</div>
-        ${products ? `<div class="tag-row">${products}</div>` : ''}
-      `;
+      card.innerHTML = stationDetailHtml(s, userLocation ? s._dist : null);
       card.addEventListener('click', () => focusStation(s.id));
       frag.appendChild(card);
     });
@@ -178,27 +119,10 @@
   function setUserLocation(lat, lng, estimated) {
     userLocation = { lat, lng, estimated };
     if (youAreHereMarker) map.removeLayer(youAreHereMarker);
-    youAreHereMarker = L.marker([lat, lng], {
-      icon: L.divIcon({ className: '', html: '<div class="you-are-here"></div>', iconSize: [16, 16] }),
-      zIndexOffset: 1000,
-    }).addTo(map);
+    youAreHereMarker = L.marker([lat, lng], { icon: youAreHereIcon(), zIndexOffset: 1000 }).addTo(map);
     youAreHereMarker.bindTooltip(estimated ? '估計位置' : '你的位置');
     map.setView([lat, lng], 13);
     refresh();
-  }
-
-  function findNearestOfType(type) {
-    const origin = userLocation || (() => {
-      const c = map.getCenter();
-      return { lat: c.lat, lng: c.lng };
-    })();
-    let best = null, bestDist = Infinity;
-    stations.forEach(s => {
-      if (s.type !== type || s.lat == null) return;
-      const d = haversineKm(origin.lat, origin.lng, s.lat, s.lng);
-      if (d < bestDist) { bestDist = d; best = s; }
-    });
-    return best ? { station: best, dist: bestDist } : null;
   }
 
   function setupCityDistrictFallback() {
@@ -303,7 +227,8 @@
     document.querySelectorAll('.nearest-buttons .chip-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const type = btn.dataset.type;
-        const result = findNearestOfType(type);
+        const origin = userLocation || (() => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng }; })();
+        const result = findNearest(stations, origin, type);
         const resultEl = el('nearestResult');
         resultEl.hidden = false;
         if (!result) {
@@ -311,7 +236,7 @@
           return;
         }
         resultEl.innerHTML = `
-          <span class="type-badge ${result.station.type}" title="${TYPE_TITLES[result.station.type] || ''}">${TYPE_LABELS[result.station.type]}</span>
+          ${typeBadgeHtml(result.station.type)}
           <strong>${escapeHtml(result.station.name)}</strong> · ${formatDistance(result.dist)}
           <div class="card-addr">${escapeHtml(result.station.address)}</div>
         `;
@@ -326,9 +251,7 @@
 
   async function loadData() {
     try {
-      const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      stations = await res.json();
+      stations = await loadStations();
       el('status').textContent = `共 ${stations.length} 站`;
     } catch (err) {
       el('status').textContent = '資料載入失敗';
