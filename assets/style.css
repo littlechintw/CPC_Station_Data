@@ -36,6 +36,13 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
 }
 
+/* Phone/nav links (card-addr, popups) were falling back to the browser's
+   default blue/purple link colors, which read poorly against the dark
+   theme's background. Tie them to --accent so they stay legible in both. */
+a { color: var(--accent); }
+a:visited { color: var(--accent); }
+a:hover { text-decoration: underline; }
+
 #topbar {
   display: flex;
   align-items: center;

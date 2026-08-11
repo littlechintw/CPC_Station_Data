@@ -9,14 +9,10 @@ const CPC = (() => {
   const TYPE_TITLES = { direct: '直營站', franchise: '加盟站', fishing: '漁船站（其他）' };
   const TYPE_ORDER = ['direct', 'franchise', 'fishing'];
 
-  // Near-grayscale basemap (CARTO Positron/Dark Matter) instead of standard
-  // colorful OSM tiles — the colored type-dot markers were hard to spot
-  // against busy, saturated street-map colors. Picked per color-scheme so a
-  // light-mode map doesn't sit as a glaring white box on a dark page.
-  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const TILE_URL = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  // Near-grayscale basemap (CARTO Positron) instead of standard colorful OSM
+  // tiles — the colored type-dot markers were hard to spot against busy,
+  // saturated street-map colors. Always this one style, light or dark page.
+  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
   const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
   const TILE_MAX_ZOOM = 19;
 
