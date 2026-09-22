@@ -9,11 +9,13 @@ const CPC = (() => {
   const TYPE_TITLES = { direct: '直營站', franchise: '加盟站', fishing: '漁船站（其他）' };
   const TYPE_ORDER = ['direct', 'franchise', 'fishing'];
 
-  // Near-grayscale basemap (CARTO Positron) instead of standard colorful OSM
-  // tiles — the colored type-dot markers were hard to spot against busy,
-  // saturated street-map colors. Always this one style, light or dark page.
-  const TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-  const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  // Standard OpenStreetMap tiles — free, no API key. (CARTO Positron, used
+  // before, now watermarks every tile with "API KEY REQUIRED" for anonymous
+  // use.) OSM's colorful style would swamp the type-dot markers, so
+  // style.css desaturates the tile pane to get a gray basemap back.
+  // OSM has no {s} subdomains or @2x tiles; keep the URL plain.
+  const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
   const TILE_MAX_ZOOM = 19;
 
   function haversineKm(lat1, lng1, lat2, lng2) {
@@ -76,8 +78,21 @@ const CPC = (() => {
     });
   }
 
+  // A person pictogram standing on a pulsing ring, anchored at the feet so
+  // the figure stands on the actual coordinate rather than being centered
+  // over it.
   function youAreHereIcon() {
-    return L.divIcon({ className: '', html: '<div class="you-are-here"></div>', iconSize: [16, 16] });
+    const svg = '<svg viewBox="0 0 24 32" width="24" height="32" aria-hidden="true">' +
+      '<circle cx="12" cy="5.5" r="4.2"/>' +
+      '<path d="M12 11.5c-4 0-7 2.4-7 5.6V24h3v7h8v-7h3v-6.9c0-3.2-3-5.6-7-5.6z"/>' +
+      '</svg>';
+    return L.divIcon({
+      className: '',
+      html: `<div class="you-are-here">${svg}<span class="you-are-here-ring"></span></div>`,
+      iconSize: [28, 34],
+      iconAnchor: [14, 32],
+      tooltipAnchor: [0, -30],
+    });
   }
 
   function addBaseTileLayer(map) {
